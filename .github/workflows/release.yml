@@ -1,0 +1,43 @@
+name: Build and Release OpenWrt IPK
+
+on:
+  release:
+    types: [published, created]
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+    branches:
+      - main
+      - master
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build OpenWrt IPK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Make Build Script Executable
+        run: chmod +x build_ipk.sh
+
+      - name: Build IPK Package
+        run: ./build_ipk.sh
+
+      - name: Upload IPK to Release
+        uses: softprops/action-gh-release@v2
+        if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/')
+        with:
+          files: "*.ipk"
+
+      - name: Upload IPK Artifact
+        uses: actions/upload-artifact@v4
+        if: github.event_name != 'release'
+        with:
+          name: luci-app-pppoe-server-ipk
+          path: "*.ipk"
