@@ -1,0 +1,9 @@
+#!/bin/sh
+
+IP="$4"
+
+if [ -n "$IP" ]; then
+	for handle in $(nft -a list chain inet pppoe_isolir prerouting 2>/dev/null | grep "$IP" | awk '{print $NF}'); do
+		nft delete rule inet pppoe_isolir prerouting handle $handle
+	done
+fi

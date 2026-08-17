@@ -1,0 +1,25 @@
+{
+  "admin/services/pppoe-server": {
+    "title": "PPPoE Server",
+    "action": {
+      "type": "firstchild"
+    },
+    "order": 60
+  },
+  "admin/services/pppoe-server/config": {
+    "title": "Global Settings",
+    "action": {
+      "type": "view",
+      "path": "pppoe-server/config"
+    },
+    "order": 1
+  },
+  "admin/services/pppoe-server/users": {
+    "title": "User Secrets & Isolir",
+    "action": {
+      "type": "view",
+      "path": "pppoe-server/users"
+    },
+    "order": 2
+  }
+}

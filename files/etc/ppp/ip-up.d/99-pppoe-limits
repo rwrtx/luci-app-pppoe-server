@@ -1,0 +1,39 @@
+#!/bin/sh
+
+INTERFACE="$1"
+IP="$4"
+PEER_NAME="$6"
+
+[ -z "$PEER_NAME" ] && exit 0
+
+DOWN_LIMIT=""
+UP_LIMIT=""
+ISOLATED="0"
+
+uci_find_user() {
+	local cfg="$1"
+	local user
+	config_get user "$cfg" username
+	if [ "$user" = "$PEER_NAME" ]; then
+		config_get DOWN_LIMIT "$cfg" download_limit
+		config_get UP_LIMIT "$cfg" upload_limit
+		config_get ISOLATED "$cfg" isolated "0"
+	fi
+}
+
+. /lib/functions.sh
+config_load pppoe-server
+config_foreach uci_find_user user
+
+if [ -n "$DOWN_LIMIT" ]; then
+	tc qdisc del dev $INTERFACE root 2>/dev/null
+	tc qdisc add dev $INTERFACE root handle 1: htb default 11
+	tc class add dev $INTERFACE parent 1: classid 1:1 htb rate $DOWN_LIMIT
+	tc class add dev $INTERFACE parent 1:1 classid 1:11 htb rate $DOWN_LIMIT
+fi
+
+if [ "$ISOLATED" = "1" ]; then
+	nft add rule inet pppoe_isolir prerouting ip saddr $IP tcp dport 80 redirect to :8080
+	nft add rule inet pppoe_isolir prerouting ip saddr $IP udp dport != 53 drop
+	nft add rule inet pppoe_isolir prerouting ip saddr $IP tcp dport != 8080 drop
+fi

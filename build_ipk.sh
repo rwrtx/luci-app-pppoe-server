@@ -20,12 +20,26 @@ Title: MikroTik-style PPPoE Server with Bandwidth Limit & Isolir
 Description: A LuCI management package for PPPoE Server on OpenWrt 24.
 EOF
 
+cat <<'EOF' > $BUILD_DIR/CONTROL/postinst
+#!/bin/sh
+if [ -z "$IPKG_INSTROOT" ]; then
+    rm -rf /tmp/luci-indexcache /tmp/luci-modulecache
+    /etc/init.d/rpcd restart 2>/dev/null
+    /etc/init.d/uhttpd restart 2>/dev/null
+fi
+exit 0
+EOF
+
+chmod +x $BUILD_DIR/CONTROL/postinst
+
 mkdir -p $BUILD_DIR/etc/config
 mkdir -p $BUILD_DIR/etc/init.d
 mkdir -p $BUILD_DIR/etc/ppp/ip-up.d
 mkdir -p $BUILD_DIR/etc/ppp/ip-down.d
 mkdir -p $BUILD_DIR/usr/share/luci/menu.d
+mkdir -p $BUILD_DIR/usr/share/rpcd/acl.d
 mkdir -p $BUILD_DIR/usr/share/luci/resources/view/pppoe-server
+mkdir -p $BUILD_DIR/www/luci-static/resources/view/pppoe-server
 mkdir -p $BUILD_DIR/www/isolir
 
 cp files/etc/config/pppoe-server $BUILD_DIR/etc/config/
@@ -33,7 +47,9 @@ cp files/etc/init.d/pppoe-server $BUILD_DIR/etc/init.d/
 cp files/etc/ppp/ip-up.d/99-pppoe-limits $BUILD_DIR/etc/ppp/ip-up.d/
 cp files/etc/ppp/ip-down.d/99-pppoe-limits $BUILD_DIR/etc/ppp/ip-down.d/
 cp files/usr/share/luci/menu.d/luci-app-pppoe-server.json $BUILD_DIR/usr/share/luci/menu.d/
+cp files/usr/share/rpcd/acl.d/luci-app-pppoe-server.json $BUILD_DIR/usr/share/rpcd/acl.d/
 cp files/usr/share/luci/resources/view/pppoe-server/*.js $BUILD_DIR/usr/share/luci/resources/view/pppoe-server/
+cp files/usr/share/luci/resources/view/pppoe-server/*.js $BUILD_DIR/www/luci-static/resources/view/pppoe-server/
 cp files/www/isolir/index.html $BUILD_DIR/www/isolir/
 
 chmod +x $BUILD_DIR/etc/init.d/pppoe-server

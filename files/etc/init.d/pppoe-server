@@ -1,0 +1,73 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+STOP=10
+
+USE_PROCD=1
+PROG=/usr/sbin/pppoe-server
+
+setup_nftables() {
+	nft add table inet pppoe_isolir 2>/dev/null
+	nft add chain inet pppoe_isolir prerouting '{ type filter hook prerouting priority 0; policy accept; }' 2>/dev/null
+	nft flush chain inet pppoe_isolir
+}
+
+start_service() {
+	config_load pppoe-server
+	
+	local enabled interface local_ip ip_pool_start ip_pool_end dns1 dns2
+	config_get_bool enabled main enabled 0
+	[ "$enabled" -eq 0 ] && return 0
+
+	config_get interface main interface 'lan'
+	config_get local_ip main local_ip '192.168.100.1'
+	config_get ip_pool_start main ip_pool_start '192.168.100.10'
+	config_get ip_pool_end main ip_pool_end '192.168.100.250'
+	config_get dns1 main dns1 '8.8.8.8'
+	config_get dns2 main dns2 '8.8.4.4'
+
+	# Generate CHAP/PAP secrets
+	echo "" > /etc/ppp/chap-secrets
+	
+	handle_user() {
+		local cfg="$1"
+		local username password remote_ip disabled
+		config_get username "$cfg" username
+		config_get password "$cfg" password
+		config_get remote_ip "$cfg" remote_ip
+		config_get_bool disabled "$cfg" disabled 0
+
+		if [ "$disabled" -eq 0 ] && [ -n "$username" ]; then
+			echo ""$username" * "$password" "$remote_ip"" >> /etc/ppp/chap-secrets
+		fi
+	}
+	config_foreach handle_user user
+
+	# Configure options
+	cat <<EOF > /etc/ppp/pppoe-server-options
+auth
+require-chap
+default-mru 1492
+default-mtu 1492
+ms-dns $dns1
+ms-dns $dns2
+lcp-echo-interval 10
+lcp-echo-failure 2
+EOF
+
+	setup_nftables
+
+	procd_open_instance
+	procd_set_param command $PROG -I $interface -L $local_ip -R $ip_pool_start -N 100 -O /etc/ppp/pppoe-server-options
+	procd_set_param respawn
+	procd_close_instance
+}
+
+stop_service() {
+	nft delete table inet pppoe_isolir 2>/dev/null
+}
+
+reload_service() {
+	stop
+	start
+}

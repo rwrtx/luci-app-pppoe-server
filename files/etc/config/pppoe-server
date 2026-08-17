@@ -1,0 +1,26 @@
+config global 'main'
+	option enabled '1'
+	option interface 'lan'
+	option local_ip '192.168.100.1'
+	option ip_pool_start '192.168.100.10'
+	option ip_pool_end '192.168.100.250'
+	option dns1 '8.8.8.8'
+	option dns2 '8.8.4.4'
+
+config user
+	option username 'pelanggan1'
+	option password '12345'
+	option remote_ip '192.168.100.10'
+	option download_limit '10M'
+	option upload_limit '5M'
+	option disabled '0'
+	option isolated '0'
+
+config user
+	option username 'pelanggan_macet'
+	option password '12345'
+	option remote_ip '192.168.100.11'
+	option download_limit '2M'
+	option upload_limit '1M'
+	option disabled '0'
+	option isolated '1'
